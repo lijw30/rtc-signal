@@ -5,6 +5,22 @@ import (
 	"net/http"
 )
 
+func startHttp(port string) {
+	fmt.Printf("Start http port: %s\n", port)
+	err := http.ListenAndServe(port, nil)
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
+func startHttps(port, cert, key string) {
+	fmt.Printf("Start https port: %s\n", port)
+	err := http.ListenAndServeTLS(port, cert, key, nil)
+	if err != nil {
+		fmt.Println(err)
+	}
+}
+
 func main() {
 	// 1. 定义url前缀
 	staticUrl := "/static/"
@@ -15,10 +31,8 @@ func main() {
 	// 3. 绑定url和fileserver
 	http.Handle(staticUrl, http.StripPrefix(staticUrl, fs))
 
-	// 4. 启动httpserver
-	//err := http.ListenAndServe(":8080", nil)
-	err := http.ListenAndServeTLS(":8081", "./conf/cert.pem", "./conf/key.pem", nil)
-	if err != nil {
-		fmt.Println(err)
-	}
+	// 4. 启动http server
+	go startHttp(":8080")
+	// 5. 启动http server
+	startHttps(":8081", "./conf/cert.pem", "./conf/key.pem")
 }
