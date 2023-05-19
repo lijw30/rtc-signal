@@ -16,7 +16,8 @@ func main() {
 	http.Handle(staticUrl, http.StripPrefix(staticUrl, fs))
 
 	// 4. 启动httpserver
-	err := http.ListenAndServe(":8084", nil)
+	//err := http.ListenAndServe(":8080", nil)
+	err := http.ListenAndServeTLS(":8081", "./conf/cert.pem", "./conf/key.pem", nil)
 	if err != nil {
 		fmt.Println(err)
 	}
