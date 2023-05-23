@@ -5,9 +5,18 @@ const remoteVideo = document.getElementById('remoteVideo');
 
 const startPushBtn = document.getElementById('btnStartPush');
 const startPullBtn = document.getElementById('btnStartPull');
+const stopPushBtn = document.getElementById('btnStopPush');
+const stopPullBtn = document.getElementById('btnStopPull');
 
 startPushBtn.addEventListener('click', startPush);
 startPullBtn.addEventListener('click', startPull);
+
+
+stopPushBtn.addEventListener('click', stopPush);
+
+
+stopPullBtn.addEventListener('click', stopPull);
+
 
 const config = {};
 
@@ -18,6 +27,28 @@ const offerOptions = {
 
 let pc1 = new RTCPeerConnection(config); // local pc
 let pc2 = new RTCPeerConnection(config); // remote pc
+let remoteStream;
+
+function stopPush() {
+    console.log("pc1 stop push stream");
+
+    if (pc1) {
+        pc1.close();
+        pc1 = null;
+    }
+    localVideo.srcObject = null;
+}
+
+function stopPull() {
+    console.log("pc2 stop pull stream");
+
+    if (pc2) {
+        pc2.close();
+        pc2 = null;
+    }
+    remoteVideo.srcObject = null;
+}
+
 
 function startPush() {
     console.log("start push stream");
@@ -28,6 +59,7 @@ function startPush() {
 function startPull() {
     console.log("start pull stream");
 
+    remoteVideo.srcObject = remoteStream;
     pc2.createAnswer().then(
         onCreateAnswerSuccess,
         onCreateSessionDescriptionError
@@ -39,7 +71,7 @@ function onCreateAnswerSuccess(desc) {
 
     console.log('pc2 set local description start');
     pc2.setLocalDescription(desc).then(
-        function() {
+        function () {
             onSetLocalSuccess(pc2);
         },
         onSetSessionDescriptionError
@@ -47,14 +79,14 @@ function onCreateAnswerSuccess(desc) {
 
     // 交换sdp
     pc1.setRemoteDescription(desc).then(
-        function() {
+        function () {
             onSetRemoteSuccess(pc1);
         },
         onSetSessionDescriptionError
     );
 }
 
-window.addEventListener('message', function(event) {
+window.addEventListener('message', function (event) {
     if (event.origin != window.location.origin) {
         return;
     }
@@ -80,19 +112,18 @@ function startScreenStreamFrom(streamId) {
         }
     };
 
-    navigator.mediaDevices.getUserMedia(constraints).
-    then(handleSuccess).catch(handleError);
+    navigator.mediaDevices.getUserMedia(constraints).then(handleSuccess).catch(handleError);
 }
 
 function handleSuccess(stream) {
     console.log("get screen stream success");
     localVideo.srcObject = stream;
 
-    pc1.oniceconnectionstatechange = function(e) {
+    pc1.oniceconnectionstatechange = function (e) {
         onIceStateChange(pc1, e);
     };
 
-    pc1.onicecandidate = function(e) {
+    pc1.onicecandidate = function (e) {
         onIceCandidate(pc1, e);
     }
 
@@ -113,28 +144,28 @@ function onCreateOfferSuccess(desc) {
 
     console.log('pc1 set local description start');
     pc1.setLocalDescription(desc).then(
-        function() {
+        function () {
             onSetLocalSuccess(pc1);
         },
         onSetSessionDescriptionError
     );
 
     // sdp交换
-    pc2.oniceconnectionstatechange = function(e) {
+    pc2.oniceconnectionstatechange = function (e) {
         onIceStateChange(pc2, e);
     }
 
-    pc2.onicecandidate = function(e) {
+    pc2.onicecandidate = function (e) {
         onIceCandidate(pc2, e);
     }
 
-    pc2.onaddstream = function(e) {
+    pc2.onaddstream = function (e) {
         console.log('pc2 receive stream, stream_id: ' + e.stream.id);
-        remoteVideo.srcObject = e.stream;
+        remoteStream = e.stream;
     }
 
     pc2.setRemoteDescription(desc).then(
-        function() {
+        function () {
             onSetRemoteSuccess(pc2);
         },
         onSetSessionDescriptionError
@@ -162,7 +193,7 @@ function onIceStateChange(pc, e) {
 }
 
 function getOther(pc) {
-    return pc  == pc1 ? pc2 : pc1;
+    return pc == pc1 ? pc2 : pc1;
 }
 
 function onIceCandidate(pc, e) {
@@ -170,10 +201,10 @@ function onIceCandidate(pc, e) {
         (e.candidate ? e.candidate.candidate : '(null)'));
 
     getOther(pc).addIceCandidate(e.candidate).then(
-        function() {
+        function () {
             console.log(getPc(getOther(pc)) + ' add ice candidate success');
         },
-        function(err) {
+        function (err) {
             console.log(getPc(getOther(pc)) + ' add ice candidate error: ' + err.toString());
         }
     );
