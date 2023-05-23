@@ -1,6 +1,7 @@
 'use strict';
 
 const localVideo = document.getElementById('localVideo');
+const remoteVideo = document.getElementById('remoteVideo');
 
 const startPushBtn = document.getElementById('btnStartPush');
 const startPullBtn = document.getElementById('btnStartPull');
@@ -35,7 +36,7 @@ function startPull() {
 
 function onCreateAnswerSuccess(desc) {
     console.log('answer from pc2: \n' + desc.sdp);
-    
+
     console.log('pc2 set local description start');
     pc2.setLocalDescription(desc).then(
         function() {
@@ -80,13 +81,13 @@ function startScreenStreamFrom(streamId) {
     };
 
     navigator.mediaDevices.getUserMedia(constraints).
-        then(handleSuccess).catch(handleError);
+    then(handleSuccess).catch(handleError);
 }
 
 function handleSuccess(stream) {
     console.log("get screen stream success");
     localVideo.srcObject = stream;
-    
+
     pc1.oniceconnectionstatechange = function(e) {
         onIceStateChange(pc1, e);
     };
@@ -94,7 +95,7 @@ function handleSuccess(stream) {
     pc1.onicecandidate = function(e) {
         onIceCandidate(pc1, e);
     }
-    
+
     pc1.addStream(stream);
 
     pc1.createOffer(offerOptions).then(
@@ -129,6 +130,7 @@ function onCreateOfferSuccess(desc) {
 
     pc2.onaddstream = function(e) {
         console.log('pc2 receive stream, stream_id: ' + e.stream.id);
+        remoteVideo.srcObject = e.stream;
     }
 
     pc2.setRemoteDescription(desc).then(
@@ -159,9 +161,22 @@ function onIceStateChange(pc, e) {
     console.log(getPc(pc) + ' ice state change: ' + pc.iceConnectionState);
 }
 
+function getOther(pc) {
+    return pc  == pc1 ? pc2 : pc1;
+}
+
 function onIceCandidate(pc, e) {
-    console.log(getPc(pc) + ' get new ice candidate: ' + 
+    console.log(getPc(pc) + ' get new ice candidate: ' +
         (e.candidate ? e.candidate.candidate : '(null)'));
+
+    getOther(pc).addIceCandidate(e.candidate).then(
+        function() {
+            console.log(getPc(getOther(pc)) + ' add ice candidate success');
+        },
+        function(err) {
+            console.log(getPc(getOther(pc)) + ' add ice candidate error: ' + err.toString());
+        }
+    );
 }
 
 function handleError(err) {
